@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Trek Tile Probe</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #c8d0e0; padding: 24px; }
+  h1 { color: #4a9eff; margin-bottom: 8px; font-size: 1.2rem; }
+  p  { color: #888; font-size: .8rem; margin-bottom: 20px; }
+  #log { display: grid; gap: 6px; }
+  .row {
+    display: grid; grid-template-columns: 180px 1fr 120px;
+    align-items: center; gap: 12px;
+    background: #ffffff08; border-radius: 6px; padding: 8px 12px;
+    border-left: 3px solid #333;
+  }
+  .row.ok   { border-color: #4caf50; }
+  .row.err  { border-color: #f44336; }
+  .row.load { border-color: #ff9800; }
+  .name { font-weight: bold; color: #eee; font-size: .85rem; }
+  .info { font-size: .75rem; color: #aaa; word-break: break-all; }
+  .badge {
+    font-size: .75rem; font-weight: bold; padding: 3px 8px;
+    border-radius: 4px; text-align: center;
+  }
+  .badge.ok  { background: #4caf5022; color: #4caf50; }
+  .badge.err { background: #f4433622; color: #f44336; }
+  .badge.load{ background: #ff980022; color: #ff9800; }
+  #export {
+    margin-top: 24px; background: #4a9eff22; border: 1px solid #4a9eff44;
+    border-radius: 8px; padding: 16px;
+  }
+  #export h2 { color: #4a9eff; font-size: .9rem; margin-bottom: 8px; }
+  #export pre {
+    font-size: .72rem; color: #a0e0a0; white-space: pre-wrap;
+    max-height: 400px; overflow-y: auto;
+  }
+  button {
+    margin-top: 12px; padding: 8px 18px; background: #4a9eff;
+    color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .8rem;
+  }
+  button:hover { background: #2a7eff; }
+  #section-usgs { margin-top: 32px; }
+  #section-usgs h1 { color: #ff9800; }
+</style>
+</head>
+<body>
+
+<h1>🛰 NASA Trek — WMTS Capabilities Probe</h1>
+<p>Interroge le GetCapabilities de chaque couche pour trouver le vrai <code>maxNativeZoom</code>. Ouvre la console pour plus de détails.</p>
+
+<div id="log"><div id="row-venus" class="row ok">
+      <div class="name">venus</div>
+      <div class="info" id="info-venus">https://trek.nasa.gov/tiles/Venus/EQ/Venus_Magellan_C3-MDIR_Global_Mosaic_2025m/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-venus">maxNativeZoom: 5</div></div><div id="row-mercury" class="row ok">
+      <div class="name">mercury</div>
+      <div class="info" id="info-mercury">https://trek.nasa.gov/tiles/
+Mercury/EQ/
+Mercury_MESSENGER_MDIS_Basemap_EnhancedColor_Mosaic_Global_665m/1.0.0/
+WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-mercury">maxNativeZoom: 7</div></div><div id="row-mars_vik" class="row ok">
+      <div class="name">mars_vik</div>
+      <div class="info" id="info-mars_vik">https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-mars_vik">maxNativeZoom: 7</div></div><div id="row-moon_lro" class="row ok">
+      <div class="name">moon_lro</div>
+      <div class="info" id="info-moon_lro">https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-moon_lro">maxNativeZoom: 8</div></div><div id="row-phobos" class="row ok">
+      <div class="name">phobos</div>
+      <div class="info" id="info-phobos">https://trek.nasa.gov/tiles/Phobos/EQ/Phobos_Viking_Mosaic_40ppd_DLRcontrol/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-phobos">maxNativeZoom: 5</div></div><div id="row-io" class="row ok">
+      <div class="name">io</div>
+      <div class="info" id="info-io">https://trek.nasa.gov/tiles/Io/EQ/Io_GalileoSSI_Voyager_Global_Mosaic_ClrMerge_1km/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-io">maxNativeZoom: 4</div></div><div id="row-europa" class="row ok">
+      <div class="name">europa</div>
+      <div class="info" id="info-europa">https://trek.nasa.gov/tiles/Europa/EQ/20150218_europa_global_map_20000x10000/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-europa">maxNativeZoom: 5</div></div><div id="row-ganymede" class="row ok">
+      <div class="name">ganymede</div>
+      <div class="info" id="info-ganymede">https://trek.nasa.gov/tiles/Ganymede/EQ/Ganymede_Voyager_GalileoSSI_global_mosaic_1km/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-ganymede">maxNativeZoom: 5</div></div><div id="row-callisto" class="row ok">
+      <div class="name">callisto</div>
+      <div class="info" id="info-callisto">https://trek.nasa.gov/tiles/Callisto/EQ/Callisto_Voyager_GalileoSSI_global_mosaic_1km/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-callisto">maxNativeZoom: 5</div></div><div id="row-titan" class="row ok">
+      <div class="name">titan</div>
+      <div class="info" id="info-titan">https://trek.nasa.gov/tiles/Titan/EQ/Titan_global_32ppd_ColorRatio_v2/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-titan">maxNativeZoom: 4</div></div><div id="row-mimas" class="row ok">
+      <div class="name">mimas</div>
+      <div class="info" id="info-mimas">https://trek.nasa.gov/tiles/Mimas/EQ/MI_170630_DLR_basemap/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-mimas">maxNativeZoom: 4</div></div><div id="row-enceladus" class="row ok">
+      <div class="name">enceladus</div>
+      <div class="info" id="info-enceladus">https://trek.nasa.gov/tiles/Enceladus/EQ/Enceladus_Cassini_ISS_Global_Mosaic_100m_HPF/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-enceladus">maxNativeZoom: 5</div></div><div id="row-tethys" class="row ok">
+      <div class="name">tethys</div>
+      <div class="info" id="info-tethys">https://trek.nasa.gov/tiles/Tethys/EQ/Tethys_Cassini_mosaic_global_293m/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-tethys">maxNativeZoom: 4</div></div><div id="row-dione" class="row ok">
+      <div class="name">dione</div>
+      <div class="info" id="info-dione">https://trek.nasa.gov/tiles/Dione/EQ/Dione_Cassini_Voyageglobal_154m/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-dione">maxNativeZoom: 5</div></div><div id="row-rhea" class="row ok">
+      <div class="name">rhea</div>
+      <div class="info" id="info-rhea">https://trek.nasa.gov/tiles/Rhea/EQ/RH_120803_DLR_basemap/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-rhea">maxNativeZoom: 4</div></div><div id="row-iapetus" class="row ok">
+      <div class="name">iapetus</div>
+      <div class="info" id="info-iapetus">https://trek.nasa.gov/tiles/Iapetus/EQ/Iapetus_Cassini_Voyager_mosaic_global_783m/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-iapetus">maxNativeZoom: 3</div></div><div id="row-phoebe" class="row ok">
+      <div class="name">phoebe</div>
+      <div class="info" id="info-phoebe">https://trek.nasa.gov/tiles/Phoebe/EQ/PH_060315_DLR_basemap/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-phoebe">maxNativeZoom: 2</div></div><div id="row-ceres" class="row ok">
+      <div class="name">ceres</div>
+      <div class="info" id="info-ceres">https://trek.nasa.gov/tiles/Ceres/EQ/Ceres_Dawn_FC_HAMO_ClrShade_DLR_Global_60ppd_Oct2016/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-ceres">maxNativeZoom: 5</div></div><div id="row-vesta" class="row ok">
+      <div class="name">vesta</div>
+      <div class="info" id="info-vesta">https://trek.nasa.gov/tiles/Vesta/EQ/VestaHAMOLAMOBlend.eq/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-vesta">maxNativeZoom: 7</div></div><div id="row-bennu" class="row ok">
+      <div class="name">bennu</div>
+      <div class="info" id="info-bennu">https://trek.nasa.gov/tiles/Bennu/EQ/Bennu_Global_Print_Mosaic_fix/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-bennu">maxNativeZoom: 7</div></div><div id="row-ryugu" class="row ok">
+      <div class="name">ryugu</div>
+      <div class="info" id="info-ryugu">https://trek.nasa.gov/tiles/Ryugu/EQ/ryugu_global_v_band/1.0.0/WMTSCapabilities.xml</div>
+      <div class="badge ok" id="badge-ryugu">maxNativeZoom: 4</div></div></div>
+
+<div id="section-usgs">
+  <h1>🏷 USGS Planetarymaps — WMS Layer Probe</h1>
+  <p>Teste les endpoints WMS USGS pour vérifier la nomenclature.</p>
+  <div id="log-usgs"><div id="row-mars_nomen" class="row ok">
+      <div class="name">Mars Nomenclature</div>
+      <div class="info" id="info-mars_nomen">Layers: MARS_NOMENCLATURE_WMS, NOMENCLATURE, NOMENCLATURE_180, MARS_POLY</div>
+      <div class="badge ok" id="badge-mars_nomen">4 layer(s)</div></div><div id="row-moon_nomen" class="row ok">
+      <div class="name">Moon Nomenclature</div>
+      <div class="info" id="info-moon_nomen">Layers: (aucun)</div>
+      <div class="badge ok" id="badge-moon_nomen">0 layer(s)</div></div><div id="row-mercury_nomen" class="row ok">
+      <div class="name">Mercury Nomenclature</div>
+      <div class="info" id="info-mercury_nomen">Layers: MERCURY_NOMENCLATURE_WMS, NOMENCLATURE, NOMENCLATURE_180, MERCURY_POLY</div>
+      <div class="badge ok" id="badge-mercury_nomen">4 layer(s)</div></div><div id="row-titan_nomen" class="row ok">
+      <div class="name">Titan Nomenclature</div>
+      <div class="info" id="info-titan_nomen">Layers: TITAN_NOMENCLATURE_WMS, NOMENCLATURE, TITAN_POLY</div>
+      <div class="badge ok" id="badge-titan_nomen">3 layer(s)</div></div><div id="row-ceres_nomen" class="row ok">
+      <div class="name">Ceres Nomenclature</div>
+      <div class="info" id="info-ceres_nomen">Layers: CERES_NOMENCLATURE_WMS, NOMENCLATURE, CERES_POLY</div>
+      <div class="badge ok" id="badge-ceres_nomen">3 layer(s)</div></div><div id="row-vesta_nomen" class="row ok">
+      <div class="name">Vesta Nomenclature</div>
+      <div class="info" id="info-vesta_nomen">Layers: VESTA_NOMENCLATURE_WMS, NOMENCLATURE, VESTA_POLY</div>
+      <div class="badge ok" id="badge-vesta_nomen">3 layer(s)</div></div></div>
+</div>
+
+<div id="export" style="display: block;">
+  <h2>📋 Résultats — copiez dans planets.js</h2>
+  <pre id="export-text">// ── maxNativeZoom values from WMTS GetCapabilities ──
+// Paste these into the corresponding opts: {} in PLANETS
+
+  // venus        maxNativeZoom: 5
+  // mercury      maxNativeZoom: 7
+  // mars_vik     maxNativeZoom: 7
+  // moon_lro     maxNativeZoom: 8
+  // phobos       maxNativeZoom: 5
+  // io           maxNativeZoom: 4
+  // europa       maxNativeZoom: 5
+  // ganymede     maxNativeZoom: 5
+  // callisto     maxNativeZoom: 5
+  // titan        maxNativeZoom: 4
+  // mimas        maxNativeZoom: 4
+  // enceladus    maxNativeZoom: 5
+  // tethys       maxNativeZoom: 4
+  // dione        maxNativeZoom: 5
+  // rhea         maxNativeZoom: 4
+  // iapetus      maxNativeZoom: 3
+  // phoebe       maxNativeZoom: 2
+  // ceres        maxNativeZoom: 5
+  // vesta        maxNativeZoom: 7
+  // bennu        maxNativeZoom: 7
+  // ryugu        maxNativeZoom: 4
+
+// Usage in opts:
+//   opts: { maxNativeZoom: N, attribution: '...' }
+// makeLayer() forcera maxZoom: 28 pour l'upscaling Leaflet.
+</pre>
+  <button onclick="navigator.clipboard.writeText(document.getElementById('export-text').textContent)">
+    📋 Copier
+  </button>
+</div>
+
+<script>
+// ── Trek layers to probe ──────────────────────────────────────────────────────
+const TREK_BASE = 'https://trek.nasa.gov/tiles';
+const LAYERS = [
+  { id: 'venus',     body: 'Venus',    layer: 'Venus_Magellan_C3-MDIR_Global_Mosaic_2025m' },
+  { id: 'mercury',   body: 'Mercury',  layer: 'Mercury_MESSENGER_MDIS_Basemap_EnhancedColor_Mosaic_Global_665m' },
+  { id: 'mars_vik',  body: 'Mars',     layer: 'Mars_Viking_MDIM21_ClrMosaic_global_232m' },
+  { id: 'moon_lro',  body: 'Moon',     layer: 'LRO_WAC_Mosaic_Global_303ppd_v02' },
+  { id: 'phobos',    body: 'Phobos',   layer: 'Phobos_Viking_Mosaic_40ppd_DLRcontrol' },
+  { id: 'io',        body: 'Io',       layer: 'Io_GalileoSSI_Voyager_Global_Mosaic_ClrMerge_1km' },
+  { id: 'europa',    body: 'Europa',   layer: '20150218_europa_global_map_20000x10000' },
+  { id: 'ganymede',  body: 'Ganymede', layer: 'Ganymede_Voyager_GalileoSSI_global_mosaic_1km' },
+  { id: 'callisto',  body: 'Callisto', layer: 'Callisto_Voyager_GalileoSSI_global_mosaic_1km' },
+  { id: 'titan',     body: 'Titan',    layer: 'Titan_global_32ppd_ColorRatio_v2' },
+  { id: 'mimas',     body: 'Mimas',    layer: 'MI_170630_DLR_basemap' },
+  { id: 'enceladus', body: 'Enceladus',layer: 'Enceladus_Cassini_ISS_Global_Mosaic_100m_HPF' },
+  { id: 'tethys',    body: 'Tethys',   layer: 'Tethys_Cassini_mosaic_global_293m' },
+  { id: 'dione',     body: 'Dione',    layer: 'Dione_Cassini_Voyageglobal_154m' },
+  { id: 'rhea',      body: 'Rhea',     layer: 'RH_120803_DLR_basemap' },
+  { id: 'iapetus',   body: 'Iapetus',  layer: 'Iapetus_Cassini_Voyager_mosaic_global_783m' },
+  { id: 'phoebe',    body: 'Phoebe',   layer: 'PH_060315_DLR_basemap' },
+  { id: 'ceres',     body: 'Ceres',    layer: 'Ceres_Dawn_FC_HAMO_ClrShade_DLR_Global_60ppd_Oct2016' },
+  { id: 'vesta',     body: 'Vesta',    layer: 'VestaHAMOLAMOBlend.eq' },
+  { id: 'bennu',     body: 'Bennu',    layer: 'Bennu_Global_Print_Mosaic_fix' },
+  { id: 'ryugu',     body: 'Ryugu',    layer: 'ryugu_global_v_band' },
+];
+
+// ── USGS WMS endpoints to probe ───────────────────────────────────────────────
+const USGS_BASE = 'https://planetarymaps.usgs.gov/cgi-bin/mapserv';
+const USGS_MAPS = [
+  { id: 'mars_nomen',    label: 'Mars Nomenclature',    map: '/maps/mars/mars_nomen_wms.map' },
+  { id: 'moon_nomen',    label: 'Moon Nomenclature',    map: '/maps/moon/moon_nomen_wms.map' },
+  { id: 'mercury_nomen', label: 'Mercury Nomenclature', map: '/maps/mercury/mercury_nomen_wms.map' },
+  { id: 'titan_nomen',   label: 'Titan Nomenclature',   map: '/maps/saturn/titan_nomen_wms.map' },
+  { id: 'ceres_nomen',   label: 'Ceres Nomenclature',   map: '/maps/asteroid_belt/ceres_nomen_wms.map' },
+  { id: 'vesta_nomen',   label: 'Vesta Nomenclature',   map: '/maps/asteroid_belt/vesta_nomen_wms.map' },
+];
+
+// ── Parse WMTS capabilities XML → max TileMatrix identifier ──────────────────
+function parseMaxZoom(xmlText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, 'application/xml');
+
+  // TileMatrix identifiers are integers 0..N in the TileMatrixSet
+  const identifiers = [...doc.querySelectorAll('TileMatrix > Identifier')]
+    .map(el => parseInt(el.textContent.trim(), 10))
+    .filter(n => !isNaN(n));
+
+  if (!identifiers.length) return null;
+  return Math.max(...identifiers);
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function addRow(container, id, name, stateClass, badgeText, info) {
+  let row = document.getElementById('row-' + id);
+  if (!row) {
+    row = document.createElement('div');
+    row.id = 'row-' + id;
+    row.className = 'row ' + stateClass;
+    row.innerHTML = `
+      <div class="name">${name}</div>
+      <div class="info" id="info-${id}">${info}</div>
+      <div class="badge ${stateClass}" id="badge-${id}">${badgeText}</div>`;
+    container.appendChild(row);
+  } else {
+    row.className = 'row ' + stateClass;
+    document.getElementById('info-' + id).textContent = info;
+    const badge = document.getElementById('badge-' + id);
+    badge.className = 'badge ' + stateClass;
+    badge.textContent = badgeText;
+  }
+}
+
+// ── Probe Trek layers ─────────────────────────────────────────────────────────
+const logEl  = document.getElementById('log');
+const results = {};
+
+async function probeTrek(l) {
+  const capUrl = `${TREK_BASE}/${l.body}/EQ/${l.layer}/1.0.0/WMTSCapabilities.xml`;
+  addRow(logEl, l.id, l.id, 'load', '…', capUrl);
+  try {
+    const r = await fetch(capUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const xml  = await r.text();
+    const maxZ = parseMaxZoom(xml);
+    if (maxZ === null) throw new Error('Impossible de parser le XML');
+    results[l.id] = maxZ;
+    addRow(logEl, l.id, l.id, 'ok', `maxNativeZoom: ${maxZ}`, capUrl);
+  } catch(e) {
+    results[l.id] = '???';
+    addRow(logEl, l.id, l.id, 'err', 'ERREUR', `${capUrl} → ${e.message}`);
+  }
+}
+
+// ── Probe USGS WMS ────────────────────────────────────────────────────────────
+const logUsgsEl = document.getElementById('log-usgs');
+
+async function probeUsgs(m) {
+  const capUrl = `${USGS_BASE}?map=${m.map}&SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.1.1`;
+  addRow(logUsgsEl, m.id, m.label, 'load', '…', capUrl);
+  try {
+    const r = await fetch(capUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const xml = await r.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'application/xml');
+    // Find layer names
+    const layerNames = [...doc.querySelectorAll('Layer > Name')]
+      .map(el => el.textContent.trim())
+      .filter(Boolean);
+    addRow(logUsgsEl, m.id, m.label, 'ok',
+      `${layerNames.length} layer(s)`,
+      `Layers: ${layerNames.join(', ') || '(aucun)'}`);
+  } catch(e) {
+    addRow(logUsgsEl, m.id, m.label, 'err', 'ERREUR', `${capUrl} → ${e.message}`);
+  }
+}
+
+// ── Run all probes then render export ─────────────────────────────────────────
+(async () => {
+  // Run in parallel
+  await Promise.all([
+    ...LAYERS.map(probeTrek),
+    ...USGS_MAPS.map(probeUsgs),
+  ]);
+
+  // Generate the JS snippet
+  const lines = LAYERS.map(l => {
+    const z = results[l.id];
+    return `  // ${l.id.padEnd(12)} maxNativeZoom: ${z}`;
+  });
+
+  const snippet = `// ── maxNativeZoom values from WMTS GetCapabilities ──
+// Paste these into the corresponding opts: {} in PLANETS
+
+${lines.join('\n')}
+
+// Usage in opts:
+//   opts: { maxNativeZoom: N, attribution: '...' }
+// makeLayer() forcera maxZoom: 28 pour l'upscaling Leaflet.
+`;
+
+  const exportEl = document.getElementById('export');
+  document.getElementById('export-text').textContent = snippet;
+  exportEl.style.display = 'block';
+})();
+</script>
+
+
+</body></html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Nomenclature Probe v2 — USGS Atlas + Trek</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; background: #07080f; color: #c8d0e0; padding: 24px; font-size: .78rem; }
+  h1 { color: #4a9eff; margin-bottom: 4px; font-size: 1rem; letter-spacing: .08em; }
+  h2 { color: #888; font-size: .75rem; margin: 24px 0 8px; letter-spacing: .12em; text-transform: uppercase; border-bottom: 1px solid #1a1d2e; padding-bottom: 4px; }
+  p  { color: #555; font-size: .7rem; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 6px; }
+  .row {
+    display: flex; flex-direction: column; gap: 3px;
+    background: #0d0f1a; border-radius: 5px; padding: 7px 10px;
+    border-left: 3px solid #222;
+    transition: border-color .2s;
+  }
+  .row.ok   { border-color: #4caf50; }
+  .row.err  { border-color: #1a1a1a; opacity: .4; }
+  .row.load { border-color: #ff9800; }
+  .row-top { display: flex; align-items: center; gap: 8px; }
+  .body-name { font-weight: bold; color: #aac8ff; min-width: 90px; font-size: .8rem; }
+  .source-tag { font-size: .6rem; padding: 1px 5px; border-radius: 2px; background: #1a2a3a; color: #4a7aaa; }
+  .source-tag.usgs { background: #1a2a1a; color: #4aaa4a; }
+  .badge { font-size: .65rem; font-weight: bold; padding: 2px 7px; border-radius: 3px; margin-left: auto; white-space: nowrap; }
+  .badge.ok   { background: #4caf5022; color: #4caf50; }
+  .badge.err  { background: #22222222; color: #444; }
+  .badge.load { background: #ff980022; color: #ff9800; }
+  .layer-info { font-size: .65rem; color: #555; padding-left: 2px; }
+  .layer-info.ok { color: #3a7a3a; }
+  #output { margin-top: 28px; background: #030a03; border: 1px solid #1a3a1a; border-radius: 8px; padding: 16px; display: none; }
+  #output h2 { color: #4caf50; border: none; margin-top: 0; }
+  pre { font-size: .68rem; color: #7ad07a; white-space: pre-wrap; max-height: 600px; overflow-y: auto; line-height: 1.7; }
+  .copy-btn { margin-top: 10px; padding: 6px 16px; background: #1a3a1a; color: #7ad07a; border: 1px solid #3a7a3a; border-radius: 5px; cursor: pointer; font-size: .75rem; }
+  .copy-btn:hover { background: #2a5a2a; }
+  .progress { color: #444; font-size: .7rem; margin-top: 12px; }
+  .stats { display: flex; gap: 20px; margin-bottom: 16px; }
+  .stat { font-size: .7rem; }
+  .stat span { color: #4caf50; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Nomenclature Probe v2 — USGS Astrogeology Atlas + NASA Trek</h1>
+<p>Sources : <a href="https://astrowebmaps.wr.usgs.gov/webmapatlas/Layers/maps.html" style="color:#4a7aaa">USGS Atlas</a> (URLs exactes) + NASA Trek WMTS capabilities. Teste chaque endpoint et génère les overlayDefs prêts à coller.</p>
+
+<div class="stats">
+  <div class="stat">Testés : <span id="cnt-tested">0</span></div>
+  <div class="stat">OK : <span id="cnt-ok">0</span></div>
+  <div class="stat">Échec : <span id="cnt-err">0</span></div>
+</div>
+
+<h2>USGS Planetarymaps (WMS)</h2>
+<div class="grid" id="grid-usgs"></div>
+
+<h2>NASA Trek (WMTS / XYZ)</h2>
+<div class="grid" id="grid-trek"></div>
+
+<div class="progress" id="progress"></div>
+
+<div id="output">
+  <h2>overlayDefs prêts à coller dans planets.js</h2>
+  <pre id="out-text"></pre>
+  <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('out-text').textContent)">Copier dans le presse-papier</button>
+</div>
+
+<script>
+const USGS_BASE = 'https://planetarymaps.usgs.gov/cgi-bin/mapserv';
+const TREK_BASE = 'https://trek.nasa.gov/tiles';
+
+// ── USGS endpoints extraits de l'atlas USGS Astrogeology ─────────────────────
+// Source : https://astrowebmaps.wr.usgs.gov/webmapatlas/Layers/maps.html
+// Colonne "Layer Type = WMS" + "Layer = NOMENCLATURE" pour chaque corps
+const USGS_ENDPOINTS = [
+  { id: 'venus',     label: 'Vénus',     map: '/maps/venus/venus_nomen_wms.map',               layer: 'NOMENCLATURE' },
+  { id: 'mars',      label: 'Mars',      map: '/maps/mars/mars_nomen_wms.map',                  layer: 'NOMENCLATURE' },
+  { id: 'mercury',   label: 'Mercure',   map: '/maps/mercury/mercury_nomen_wms.map',             layer: 'NOMENCLATURE' },
+  { id: 'moon',      label: 'Lune',      map: '/maps/moon/moon_nomen_wms.map',                  layer: 'NOMENCLATURE' },
+  { id: 'phobos',    label: 'Phobos',    map: '/maps/mars/phobos_nomen_wms.map',                layer: 'NOMENCLATURE' },
+  { id: 'io',        label: 'Io',        map: '/maps/jupiter/io_nomen_wms.map',                  layer: 'NOMENCLATURE' },
+  { id: 'europa',    label: 'Europa',    map: '/maps/jupiter/europa_nomen_wms.map',              layer: 'NOMENCLATURE' },
+  { id: 'ganymede',  label: 'Ganymède',  map: '/maps/jupiter/ganymede_nomen_wms.map',            layer: 'NOMENCLATURE' },
+  { id: 'callisto',  label: 'Callisto',  map: '/maps/jupiter/callisto_nomen_wms.map',            layer: 'NOMENCLATURE' },
+  { id: 'titan',     label: 'Titan',     map: '/maps/saturn/titan_nomen_wms.map',                layer: 'NOMENCLATURE' },
+  { id: 'mimas',     label: 'Mimas',     map: '/maps/saturn/mimas_nomen_wms.map',               layer: 'NOMENCLATURE' },
+  { id: 'enceladus', label: 'Encelade',  map: '/maps/saturn/enceladus_nomen_wms.map',            layer: 'NOMENCLATURE' },
+  { id: 'tethys',    label: 'Téthys',    map: '/maps/saturn/tethys_nomen_wms.map',               layer: 'NOMENCLATURE' },
+  { id: 'dione',     label: 'Dioné',     map: '/maps/saturn/dione_nomen_wms.map',                layer: 'NOMENCLATURE' },
+  { id: 'rhea',      label: 'Rhéa',      map: '/maps/saturn/rhea_nomen_wms.map',                 layer: 'NOMENCLATURE' },
+  { id: 'iapetus',   label: 'Japet',     map: '/maps/saturn/iapetus_nomen_wms.map',              layer: 'NOMENCLATURE' },
+  { id: 'phoebe',    label: 'Phébé',     map: '/maps/saturn/phoebe_nomen_wms.map',               layer: 'NOMENCLATURE' },
+  { id: 'ceres',     label: 'Cérès',     map: '/maps/asteroid_belt/ceres_nomen_wms.map',         layer: 'NOMENCLATURE' },
+  { id: 'vesta',     label: 'Vesta',     map: '/maps/asteroid_belt/vesta_nomen_wms.map',         layer: 'NOMENCLATURE' },
+  { id: 'bennu',     label: 'Bennu',     map: '/maps/asteroid_belt/bennu_nomen_wms.map',         layer: 'NOMENCLATURE' },
+  // Ryugu : pas de nomenclature IAU officielle dans l'atlas
+];
+
+// ── NASA Trek : couches nomenclature connues (WMTS → XYZ) ────────────────────
+// Pattern détecté via WMTSCapabilities.xml de chaque corps
+const TREK_ENDPOINTS = [
+  { id: 'mars',      label: 'Mars',     body: 'Mars',     layer: 'Mars_HRSC_MOLA_BlendShade_ClrTopo_2500m_Nomenclature', ext: 'png' },
+  { id: 'moon',      label: 'Lune',     body: 'Moon',     layer: 'Moon_LRO_LROC-WAC_Mosaic_global_100m_June2013_Nomenclature', ext: 'png' },
+  { id: 'mercury',   label: 'Mercure',  body: 'Mercury',  layer: 'Mercury_MESSENGER_MDIS_Basemap_BDR_Mosaic_Global_166m_Nomenclature', ext: 'png' },
+  { id: 'venus',     label: 'Vénus',    body: 'Venus',    layer: 'Venus_Magellan_C3-MDIR_Global_Mosaic_2025m_Nomenclature', ext: 'png' },
+  { id: 'titan',     label: 'Titan',    body: 'Titan',    layer: 'Titan_Cassini_ISS_Nomenclature', ext: 'png' },
+  { id: 'europa',    label: 'Europa',   body: 'Europa',   layer: 'Europa_Galileo_Nomenclature', ext: 'png' },
+  { id: 'io',        label: 'Io',       body: 'Io',       layer: 'Io_Galileo_Nomenclature', ext: 'png' },
+  { id: 'ceres',     label: 'Cérès',    body: 'Ceres',    layer: 'Ceres_Dawn_FC_HAMO_ClrShade_DLR_Global_60ppd_Oct2016_Nomenclature', ext: 'png' },
+  { id: 'vesta',     label: 'Vesta',    body: 'Vesta',    layer: 'VestaHAMOLAMOBlend.eq_Nomenclature', ext: 'png' },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let cntTested = 0, cntOk = 0, cntErr = 0;
+const results = { usgs: {}, trek: {} };
+
+function updateStats() {
+  document.getElementById('cnt-tested').textContent = cntTested;
+  document.getElementById('cnt-ok').textContent = cntOk;
+  document.getElementById('cnt-err').textContent = cntErr;
+}
+
+// ── Row UI ────────────────────────────────────────────────────────────────────
+function makeRow(grid, uid, label, sourceLabel, sourceClass) {
+  const row = document.createElement('div');
+  row.id = 'row-' + uid;
+  row.className = 'row load';
+  row.innerHTML = `
+    <div class="row-top">
+      <div class="body-name">${label}</div>
+      <div class="source-tag ${sourceClass}">${sourceLabel}</div>
+      <div class="badge load" id="badge-${uid}">…</div>
+    </div>
+    <div class="layer-info" id="info-${uid}">en attente…</div>`;
+  grid.appendChild(row);
+}
+
+function setRow(uid, ok, badgeText, info) {
+  const row = document.getElementById('row-' + uid);
+  const badge = document.getElementById('badge-' + uid);
+  const infoEl = document.getElementById('info-' + uid);
+  if (!row) return;
+  row.className = 'row ' + (ok ? 'ok' : 'err');
+  badge.className = 'badge ' + (ok ? 'ok' : 'err');
+  badge.textContent = badgeText;
+  infoEl.className = 'layer-info ' + (ok ? 'ok' : '');
+  infoEl.textContent = info;
+  cntTested++;
+  ok ? cntOk++ : cntErr++;
+  updateStats();
+}
+
+// ── Parse WMS GetCapabilities → find layer names ──────────────────────────────
+function parseWmsLayers(xml) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  return [...doc.querySelectorAll('Layer > Name')]
+    .map(el => el.textContent.trim())
+    .filter(Boolean);
+}
+
+// ── Parse Trek WMTS capabilities → check if layer exists ─────────────────────
+function trekLayerExists(xml, layerName) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  return [...doc.querySelectorAll('Layer > ows\\:Identifier, Layer > Identifier')]
+    .some(el => el.textContent.trim() === layerName);
+}
+
+function trekLayerMaxZoom(xml, layerName) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  let maxZ = 0;
+  doc.querySelectorAll('Layer').forEach(el => {
+    const id = el.querySelector('ows\\:Identifier, Identifier');
+    if (!id || id.textContent.trim() !== layerName) return;
+    el.querySelectorAll('TileMatrix').forEach(tm => {
+      const z = parseInt(tm.textContent.trim(), 10);
+      if (!isNaN(z) && z > maxZ) maxZ = z;
+    });
+  });
+  return maxZ;
+}
+
+// ── Probe USGS WMS ────────────────────────────────────────────────────────────
+async function probeUsgs(ep) {
+  const uid = 'usgs-' + ep.id;
+  const capUrl = `${USGS_BASE}?map=${ep.map}&SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.1.1`;
+  try {
+    const r = await fetch(capUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const xml = await r.text();
+    const layers = parseWmsLayers(xml);
+    const hasNomen = layers.includes(ep.layer) || layers.includes('NOMENCLATURE');
+    const actualLayer = layers.includes(ep.layer) ? ep.layer : (layers.includes('NOMENCLATURE') ? 'NOMENCLATURE' : layers[0]);
+    if (layers.length === 0) throw new Error('0 layers');
+    results.usgs[ep.id] = { map: ep.map, layer: actualLayer, ok: hasNomen };
+    setRow(uid, true, `${layers.length} layer(s)`, `Layers: ${layers.join(', ')}`);
+  } catch(e) {
+    results.usgs[ep.id] = { ok: false };
+    setRow(uid, false, 'echec', `${e.message}`);
+  }
+}
+
+// ── Probe Trek WMTS ───────────────────────────────────────────────────────────
+async function probeTrek(ep) {
+  const uid = 'trek-' + ep.id;
+  const capUrl = `${TREK_BASE}/${ep.body}/EQ/WMTSCapabilities.xml`;
+  try {
+    const r = await fetch(capUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const xml = await r.text();
+    const exists = trekLayerExists(xml, ep.layer);
+    if (!exists) throw new Error(`couche "${ep.layer}" absente`);
+    const maxZ = trekLayerMaxZoom(xml, ep.layer);
+    const url = `${TREK_BASE}/${ep.body}/EQ/${ep.layer}/1.0.0/default/default028mm/{z}/{y}/{x}.${ep.ext}`;
+    results.trek[ep.id] = { url, maxZ, ok: true };
+    setRow(uid, true, `z≤${maxZ}`, url);
+  } catch(e) {
+    results.trek[ep.id] = { ok: false };
+    setRow(uid, false, 'absent', `${e.message}`);
+  }
+}
+
+// ── Generate output ───────────────────────────────────────────────────────────
+function generateOutput() {
+  const bodies = [
+    'venus','mars','mercury','moon','phobos',
+    'io','europa','ganymede','callisto',
+    'titan','mimas','enceladus','tethys','dione','rhea','iapetus','phoebe',
+    'ceres','vesta','bennu'
+  ];
+
+  const lines = [];
+  lines.push('// ════════════════════════════════════════════════════════════════');
+  lines.push('// Nomenclature overlayDefs — USGS Astrogeology Atlas + NASA Trek');
+  lines.push('// Remplacer les overlayDefs correspondants dans PLANETS');
+  lines.push('// ════════════════════════════════════════════════════════════════\n');
+
+  bodies.forEach(id => {
+    const u = results.usgs[id];
+    const t = results.trek[id];
+    const label = (USGS_ENDPOINTS.find(e => e.id === id) || TREK_ENDPOINTS.find(e => e.id === id) || {}).label || id;
+    lines.push(`// ── ${label} ${'─'.repeat(Math.max(0, 48 - label.length))}`);
+
+    const defs = [];
+
+    if (u && u.ok) {
+      defs.push(
+        `  {`,
+        `    label: 'Nomenclature (USGS)',`,
+        `    type: 'wms',`,
+        `    url: \`\${USGS}?map=${u.map}\`,`,
+        `    opts: { layers:'${u.layer}', format:'image/png', version:'1.1.1', transparent:true, attribution:'USGS/IAU', opacity:0.85 }`,
+        `  },`
+      );
+    }
+
+    if (t && t.ok) {
+      defs.push(
+        `  {`,
+        `    label: 'Nomenclature (Trek)',`,
+        `    type: 'xyz',`,
+        `    url: '${t.url}',`,
+        `    opts: { maxNativeZoom:${t.maxZ}, attribution:'NASA Trek · USGS/IAU', opacity:0.85 }`,
+        `  },`
+      );
+    }
+
+    if (defs.length === 0) {
+      lines.push('//   Aucune source de nomenclature disponible\n');
+    } else {
+      lines.push(...defs, '');
+    }
+  });
+
+  return lines.join('\n');
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
+const gridUsgs = document.getElementById('grid-usgs');
+const gridTrek = document.getElementById('grid-trek');
+
+USGS_ENDPOINTS.forEach(ep => makeRow(gridUsgs, 'usgs-' + ep.id, ep.label, 'USGS WMS', 'usgs'));
+TREK_ENDPOINTS.forEach(ep => makeRow(gridTrek, 'trek-' + ep.id, ep.label, 'Trek WMTS', ''));
+
+(async () => {
+  const prog = document.getElementById('progress');
+  const total = USGS_ENDPOINTS.length + TREK_ENDPOINTS.length;
+  let done = 0;
+
+  const tick = () => { done++; prog.textContent = `${done}/${total} requêtes effectuées…`; };
+
+  await Promise.all([
+    ...USGS_ENDPOINTS.map(ep => probeUsgs(ep).then(tick)),
+    ...TREK_ENDPOINTS.map(ep => probeTrek(ep).then(tick)),
+  ]);
+
+  prog.textContent = `Terminé. ${cntOk} sources actives sur ${total} testées.`;
+  document.getElementById('out-text').textContent = generateOutput();
+  document.getElementById('output').style.display = 'block';
+})();
+</script>
+</body>
+</html>
