@@ -373,3 +373,6 @@ import { GROUPS } from "./data/groups.js";
  document.getElementById('lng').addEventListener('keydown', e=>{ if(e.key==='Enter') updateAllMaps(); });
  
  buildGrid();
+
+window.useGeolocation = useGeolocation;
+window.updateAllMaps = updateAllMaps;
