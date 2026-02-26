@@ -20,4 +20,4 @@ https://rolgim.github.io/PlanetaryLocator/
 
 ## Credits
 
-All maps are dynamically retrieved from the [NASA Trek catalogue]: https://trek.nasa.gov/# using their WMTS Layer Services.
+All maps are dynamically retrieved from the [NASA Trek catalogue]:https://trek.nasa.gov/# using their WMTS Layer Services.
