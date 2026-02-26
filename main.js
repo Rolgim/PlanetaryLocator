@@ -2,7 +2,7 @@ import { PLANETS } from "./data/planets.js";
 import { GROUPS } from "./data/groups.js";
 
 
-// ── Inject group styles ────────────────────────────────────────────────────────
+// Inject group styles /////////////////////
 (function() {
   const style = document.createElement('style');
   style.textContent = `
@@ -78,7 +78,7 @@ import { GROUPS } from "./data/groups.js";
  
 
 
- // ── State ─────────────────────────────────────────────────────────────────────
+ // State /////////////////////
  
  document.getElementById('planet-count').textContent = PLANETS.length;
  
@@ -91,7 +91,7 @@ import { GROUPS } from "./data/groups.js";
  let sharedCenter = [48.8566, 2.3522]; // lat/lng propagated to all maps
  let isSyncing = false; // re-entrancy guard for zoom+pan sync
  
- // ── Helpers ───────────────────────────────────────────────────────────────────
+ // Helpers /////////////////////
  
  function markerIcon(color) {
   return L.divIcon({
@@ -130,7 +130,7 @@ import { GROUPS } from "./data/groups.js";
   return { baseLayers, overlayLayers };
  }
  
- // ── Feature 1 : zoom + pan synchronisés ──────────────────────────────────────
+ //  Feature 1 : zoom + pan synchronisés /////////////////////
  
  /** Propagate zoom to every mini-map. Zoom is clamped per-planet native ceiling. */
  function syncZoomToAll(sourceId, newZoom) {
@@ -162,7 +162,7 @@ import { GROUPS } from "./data/groups.js";
   isSyncing = false;
  }
  
- // ── Feature 2 : modal grand écran ─────────────────────────────────────────────
+ // Feature 2 : modal grand écran /////////////////////
  
  /** Build the modal DOM once and reuse it. */
  function ensureModal() {
@@ -253,7 +253,7 @@ import { GROUPS } from "./data/groups.js";
   if (modalMap) { modalMap.remove(); modalMap = null; modalMarker = null; }
  }
  
- // ── Build grid ────────────────────────────────────────────────────────────────
+ // Build grid /////////////////////
  
  function buildGrid() {
   const grid = document.getElementById('grid');
@@ -314,7 +314,7 @@ import { GROUPS } from "./data/groups.js";
   markerInstances[p.id] = marker;
   setCoordsLabel(p.id, lat, lng);
  
-  // ── Zoom + pan sync listeners (mini-maps only, not modal) ─────────────
+  // Zoom + pan sync listeners (mini-maps only, not modal) /////////////////////
   map.on('zoomend', () => {
   if (!isSyncing) syncZoomToAll(p.id, map.getZoom());
   });
@@ -326,7 +326,7 @@ import { GROUPS } from "./data/groups.js";
   });
  }
  
- // ── Coordinate sync ───────────────────────────────────────────────────────────
+ // Coordinate sync /////////////////////
  
  function updateAllMaps() {
   const lat = parseFloat(document.getElementById('lat').value);
